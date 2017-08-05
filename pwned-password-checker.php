@@ -33,24 +33,45 @@ class PwnedPasswordChecker{
   // API URL
   private $haveibeenpwned = "https://haveibeenpwned.com/api/v2/pwnedpassword/";
 
+  // Settings
+  // We'll attach these to an options page later.
+  private $check_on_login = true;
+  private $check_on_signup = true;
+  private $check_on_reset = true;
+  private $check_on_change = true;
+
+  // Email Test
+  private $email_failed = false;
+
   /**
    * plugin construct
    */
   function __construct(){
-    // Check to see if the SSL fingerprint is about to expire
-    // Probably way better ways of doing this.
+    // -- Check to see if the SSL fingerprint is about to expire
     if ( strtotime('now + 14 days') > strtotime($this->cert_expires) ){
-      add_action( 'admin_notices', function(){
-        echo '<div class="notice notice-warning"><p>';
-        _e( "Pwned Password Checker's SSL fingerprint is going to expire soon!", 'pwned_password_checker' );
-        echo '</p></div>';
-      });
+
+      // Let admin users know via a notice.
+      add_action(
+        'admin_notices',
+        function(){
+          echo '<div class="notice notice-warning"><p>';
+          _e( "Pwned Password Checker's SSL fingerprint is going to expire soon!", 'pwned_password_checker' );
+          echo '</p></div>';
+        });
     }
 
-    // Register WordPress Hooks
-    add_action( 'user_profile_update_errors', [ $this, 'check_for_burned_password' ], 10, 3 );
-    add_filter( 'registration_errors', [ $this, 'check_for_burned_password' ], 10, 3 );
-    add_action( 'validate_password_reset', [ $this, 'check_for_burned_password' ], 10, 2 );
+    // -- WordPress Hooks
+    // # Check on Registration
+    if( $this->check_on_signup ) add_filter( 'registration_errors', [ $this, 'check_for_burned_password' ], 1000, 3 );
+
+    // # Check on Profile
+    if( $this->check_on_change ) add_action( 'user_profile_update_errors', [ $this, 'check_for_burned_password' ], 1000, 3 );
+
+    // # Check on Reset
+    if( $this->check_on_reset ) add_action( 'validate_password_reset', [ $this, 'check_for_burned_password' ], 1000, 2 );
+
+    // # Check on Login
+    if( $this->check_on_login ) add_action( 'authenticate' , [ $this, 'check_on_authenticate' ], 1000, 3 );
   }
 
   /**
@@ -61,7 +82,7 @@ class PwnedPasswordChecker{
    * @param   int $attempt
    * @return  boolean
    */
-  function password_is_burned( $password, $attempt = 0){
+  function password_is_burned( $password, $attempt = 0 ){
 
     $output = false;
     $attempt = intval($attempt);
@@ -114,10 +135,8 @@ class PwnedPasswordChecker{
         ]
       ];
 
-      $context = stream_context_create($options);
-
       // Reguest, supressing warning messages - we'll handle those on our own.
-      @file_get_contents($this->haveibeenpwned, false, $context, -1, 1);
+      @file_get_contents($this->haveibeenpwned, false, stream_context_create($options), -1, 1);
 
       // Previous method via GET
       // @file_get_contents($this->haveibeenpwned.$password_sha, false, $context, -1, 1);
@@ -177,6 +196,84 @@ class PwnedPasswordChecker{
     return $output;
   }
 
+  /**
+   * check_on_authenticate
+   *
+   * @author  Benjamin Nelan
+   * @param   WP_User $user
+   * @param   string $username
+   * @param   string $password
+   * @return  null
+   */
+  function check_on_authenticate($user = null, $username, $password){
+
+    // If username or password are empty, don't continue.
+    if( empty($username) || empty($password) ) return;
+
+    // Check that our credentials are for real.
+    $login = wp_authenticate_username_password(null, $username, $password);
+
+    // User credentials are accurate, now let's see if the password is burned.
+    if ( !is_wp_error( $login ) && self::password_is_burned( $password ) ){
+
+      // Dummy WP_Die function to stop 'retreive_password()' from exiting the script.
+      // If we can't reset the user's password, we won't. Let them login, then notify them.
+      add_filter( 'wp_die_handler', function(){ return [$this, 'authenticate_die']; }, 10, 1 );
+
+      // TODO
+      // We'll be using a function that only exists in wp-login.
+      // Our reset email unfortunately won't be set unless the function exists.
+
+      // Fudge our way along with the native 'retrieve_password()' function by setting $_POST manually
+      $_POST['user_login'] = $username;
+
+      // Attempt to send a password reset email to the user because their password is vulnerable.
+      // This is a wp-login function and handles all the checking for us.
+      $reset_success = (bool) ( function_exists( 'retrieve_password' ) && ( retrieve_password() === true ) );
+
+      // Remove the filter just in case.
+      remove_filter( 'wp_die_handler', [ $this, 'authenticate_die' ] );
+
+      // Password is burned, and email was sent successfully.
+      // TODO Not a fan of how I've done this. Will revist.
+      if( $reset_success && !$this->email_failed ) {
+
+        // Password reset email sent successfully.
+        add_filter( 'login_errors', [ $this, 'login_errors' ], 10);
+
+        // Prevent login by returning null
+        return;
+      }
+    }
+
+    // // Everything else passed, return user obj.
+    return $user;
+  }
+
+  /**
+   * authenticate_die
+   * @author  Benjamin Nelan
+   * Used during 'check_on_authenticate' and triggered if 'retreive_password' fails.
+   */
+  function authenticate_die(){
+    $this->email_failed = true;
+  }
+
+  /**
+   * login_errors
+   * @author  Benjamin Nelan
+   * @return  string
+   * Used during 'check_on_authenticate' and displayed to the user if 'retreive_password' succeeds.
+   */
+  function login_errors(){
+    $message = [];
+    $message[] = '<p style="margin-bottom: 10px; font-weight: bold;">Your password is not safe.</p>';
+    $message[] = '<p style="margin-bottom: 10px;">In order to protect your account, we have sent a password reset link to your email address.</p>';
+    $message[] = '<p style="margin-bottom: 10px;">If you have used this password elsewhere, you should go and <i>change it immediately.</i></p>';
+    $message[] = '<p style="margin-bottom: 10px;">For more info, check out <a target="_blank" href="https://haveibeenpwned.com/Passwords" title="Have I Been Pwned">Have I Been Pwned</a>.</p>';
+    return join( ' ', $message );
+  }
+
   // ==============================================================================
   // Now time to use some code by Joe Sexton from WebTipBlog to make this all work.
   // Cheers, Joe!
@@ -191,6 +288,7 @@ class PwnedPasswordChecker{
    * @return  WP_Error
    */
   function check_for_burned_password( WP_Error &$errors ) {
+
     // Get the password
   	$password = ( isset( $_POST[ 'pass1' ] ) && trim( $_POST[ 'pass1' ] ) ) ? $_POST[ 'pass1' ] : null;
 
@@ -201,7 +299,8 @@ class PwnedPasswordChecker{
 
   	// Check the password via Have I Been Pwned
   	if ( self::password_is_burned( $password ) ){
-      $message = ['<strong>ERROR</strong>:'];
+      // Uh oh - pwned. Add as error.
+      $message[] = '<strong>ERROR</strong>:';
       $message[] = 'The password you have entered has appeared in a public data breach of another website.';
       $message[] = 'It is not safe to use this password to protect your account, please choose another password.';
       $message[] = 'For more info, check out <a target="_blank" href="https://haveibeenpwned.com/Passwords" title="Have I Been Pwned">Have I Been Pwned</a>.';
