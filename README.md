@@ -5,13 +5,13 @@ WordPress plugin that checks the password a user enters on registration, reset o
 ### Breakdown
 1) A user enters a password to set for their account and triggers one of the WordPress hooks: `'user_profile_update_errors'`, `'registration_errors'` or `'validate_password_reset'`
 2) The plugin checks for a `transient_key` to see if a request is already in progress to the Have I Been Pwned API _(which limits 1 request every 1.5 seconds from a single IP)_
--- If there's already a request in progress, the plugin waits 2 seconds and tries again.
--- Upon the second try, the plugin returns `false` and logs an error to the error_log. The user will be allowed to set the password they entered, and _the password will not have been checked._
+⋅⋅* If there's already a request in progress, the plugin waits 2 seconds and tries again.
+⋅⋅* Upon the second try, the plugin returns `false` and logs an error to the error_log. The user will be allowed to set the password they entered, and _the password will not have been checked._
 3) A SHA1 hash of the password is made and is sent via a GET request to _Have I Been Pwned?_
 4) The response headers are read from the request and behaves based on the status code.
--- 200 _( Success )_ = Returns `true`, this means that password has been burned.
--- 429 _( Too many requests )_ = Waits for 2 seconds then tries again, giving up on the second attempt if it also fails and logging an error via error_log. This will return `false` if both attempts fail.
--- Other errors = Returns `false`, and logs an error via error_log.
+⋅⋅* 200 _( Success )_ = Returns `true`, this means that password has been burned.
+⋅⋅* 429 _( Too many requests )_ = Waits for 2 seconds then tries again, giving up on the second attempt if it also fails and logging an error via error_log. This will return `false` if both attempts fail.
+⋅⋅* Other errors = Returns `false`, and logs an error via error_log.
 5) Upon returning `true`, an error message is shown to the user and they are informed that the password has been breached:
 
 >'The password you have entered has appeared in a public data breach of another website. It is not safe to use this password to protect your account, please choose another password. For more info, check out [Have I Been Pwned](https://haveibeenpwned.com).'
