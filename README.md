@@ -14,7 +14,7 @@ WordPress plugin that checks the password a user enters on registration, reset o
 -- Other errors = Returns `false`, and logs an error via error_log.
 5) Upon returning `true`, an error message is shown to the user and they are informed that the password has been breached:
 
->>'The password you have entered has appeared in a public data breach of another website. It is not safe to use this password to protect your account, please choose another password. For more info, check out [Have I Been Pwned](https://haveibeenpwned.com).'
+>'The password you have entered has appeared in a public data breach of another website. It is not safe to use this password to protect your account, please choose another password. For more info, check out [Have I Been Pwned](https://haveibeenpwned.com).'
 
 ### Installation
 - Download and place in a new folder within the `/wp-content/plugins` directory
