@@ -97,7 +97,7 @@ class PwnedPasswordChecker{
 
         // Wait two seconds and try again
         sleep(2);
-        $output = password_is_burned( $password, $attempt );
+        $output = self::password_is_burned( $password, $attempt );
       } else {
 
         // Log the error
@@ -177,7 +177,7 @@ class PwnedPasswordChecker{
 
               // Wait to seconds and try again.
               sleep(2);
-              $output = password_is_burned( $password, $attempt );
+              $output = self::password_is_burned( $password, $attempt );
             } else {
 
               // Log the error
