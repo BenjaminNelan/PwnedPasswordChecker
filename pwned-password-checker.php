@@ -267,10 +267,12 @@ class PwnedPasswordChecker{
    */
   function login_errors(){
     $message = [];
-    $message[] = '<p style="margin-bottom: 10px; font-weight: bold;">Your password is not safe.</p>';
-    $message[] = '<p style="margin-bottom: 10px;">In order to protect your account, we have sent a password reset link to your email address.</p>';
-    $message[] = '<p style="margin-bottom: 10px;">If you have used this password elsewhere, you should go and <i>change it immediately.</i></p>';
-    $message[] = '<p style="margin-bottom: 10px;">For more info, check out <a target="_blank" href="https://haveibeenpwned.com/Passwords" title="Have I Been Pwned">Have I Been Pwned</a>.</p>';
+    array_push($message,
+      '<p style="margin-bottom: 10px; font-weight: bold;">Your password is not safe.</p>',
+      '<p style="margin-bottom: 10px;">In order to protect your account, we have sent a password reset link to your email address.</p>',
+      '<p style="margin-bottom: 10px;">If you have used this password elsewhere, you should go and <i>change it immediately.</i></p>',
+      '<p style="margin-bottom: 10px;">For more info, check out <a target="_blank" href="https://haveibeenpwned.com/Passwords" title="Have I Been Pwned">Have I Been Pwned</a>.</p>'
+    );
     return join( ' ', $message );
   }
 
@@ -300,10 +302,12 @@ class PwnedPasswordChecker{
   	// Check the password via Have I Been Pwned
   	if ( self::password_is_burned( $password ) ){
       // Uh oh - pwned. Add as error.
-      $message[] = '<strong>ERROR</strong>:';
-      $message[] = 'The password you have entered has appeared in a public data breach of another website.';
-      $message[] = 'It is not safe to use this password to protect your account, please choose another password.';
-      $message[] = 'For more info, check out <a target="_blank" href="https://haveibeenpwned.com/Passwords" title="Have I Been Pwned">Have I Been Pwned</a>.';
+      array_push($message,
+        '<strong>ERROR</strong>:',
+        'The password you have entered has appeared in a public data breach of another website.',
+        'It is not safe to use this password to protect your account, please choose another password.',
+        'For more info, check out <a target="_blank" href="https://haveibeenpwned.com/Passwords" title="Have I Been Pwned">Have I Been Pwned</a>.'
+      );
       $errors->add( 'pass', join( ' ', $message ) );
     }
 
