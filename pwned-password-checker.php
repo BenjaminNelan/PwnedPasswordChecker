@@ -4,7 +4,7 @@
 Plugin Name: Pwned Password Checker
 Plugin URI: https://github.com/BenjaminNelan/PwnedPasswordChecker
 Description: Checks a password via Have I Been Pwned to see if it's been burned.
-Version:     1.0
+Version:     1.0.1
 Author: Benjamin Nelan
 Author URI: https://benjaminnelan.com.au
 Text Domain: pwned_password_checker
