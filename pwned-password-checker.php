@@ -4,7 +4,7 @@
 Plugin Name: Pwned Password Checker
 Plugin URI: https://github.com/BenjaminNelan/PwnedPasswordChecker
 Description: Checks a password via Have I Been Pwned to see if it's been burned.
-Version:     1.0.1
+Version:     1.0
 Author: Benjamin Nelan
 Author URI: https://benjaminnelan.com.au
 Text Domain: pwned_password_checker
@@ -13,8 +13,14 @@ License:     GPL-2.0+
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
 =================================================================================
+Thanks to Troy Hunt for the incredible API service used by this plugin.
+https://www.troyhunt.com/
+
 Thanks to Joe Sexton for his awesome post on WordPress password hooks.
 http://www.webtipblog.com/force-password-complexity-requirements-wordpress/
+
+Thanks to smakofsky who inadvertedly informed me of an API update.
+https://github.com/smakofsky/pwndpwd/
 =================================================================================
 
 */
@@ -31,7 +37,7 @@ class PwnedPasswordChecker{
   private $cert_expires = "14-12-2018";
 
   // API URL
-  private $haveibeenpwned = "https://haveibeenpwned.com/api/v2/pwnedpassword/";
+  private $haveibeenpwned = "https://api.pwnedpasswords.com/range/";
 
   // Settings
   // We'll attach these to an options page later.
@@ -48,7 +54,7 @@ class PwnedPasswordChecker{
    */
   function __construct(){
     // -- Check to see if the SSL fingerprint is about to expire
-    if ( strtotime('now + 14 days') > strtotime($this->cert_expires) ){
+    if ( strtotime('now + 28 days') > strtotime($this->cert_expires) ){
 
       // Let admin users know via a notice.
       add_action(
@@ -111,6 +117,7 @@ class PwnedPasswordChecker{
 
       // Get the SHA1 key of the password.
       $password_sha = sha1($password);
+      $k_anon_hash = substr( $password_sha, 0, 5 );
 
       // For sites with lots of users, probably unnecessary
       // Requests are limited to 1 every 1.5 seconds from the same IP
@@ -126,17 +133,17 @@ class PwnedPasswordChecker{
           'peer_fingerprint'  => $this->cert_fingerprint
         ],
         'http' => [
-          'method' => 'POST',
-          'header'  => 'Content-type: application/x-www-form-urlencoded',
-          'content' => http_build_query([
-            'Password' => $password_sha
-          ]),
+          // 'method' => 'POST',
+          // 'header'  => 'Content-type: application/x-www-form-urlencoded',
+          // 'content' => http_build_query([
+          //   'Password' => $password_sha
+          // ]),
           'user_agent' => 'WordPress Plugin: Pwned Password Checker'
         ]
       ];
 
       // Reguest, supressing warning messages - we'll handle those on our own.
-      @file_get_contents($this->haveibeenpwned, false, stream_context_create($options), -1, 1);
+      @file_get_contents($this->haveibeenpwned.$k_anon_hash, false, stream_context_create($options), -1, 1);
 
       // Previous method via GET
       // @file_get_contents($this->haveibeenpwned.$password_sha, false, $context, -1, 1);
@@ -146,7 +153,7 @@ class PwnedPasswordChecker{
         // Get the status number from the regex group.
         $status = intval($status[1]);
 
-        // Repond based on the status code.
+        // Respond based on the status code.
         switch($status){
           case 200:
             // "Ok — everything worked and there's a string array of pwned sites for the account"
@@ -266,11 +273,12 @@ class PwnedPasswordChecker{
    * Used during 'check_on_authenticate' and displayed to the user if 'retreive_password' succeeds.
    */
   function login_errors(){
-    $message = '<p style="margin-bottom: 10px; font-weight: bold;">Your password is not safe.</p>';
-    $message .= '<p style="margin-bottom: 10px;">In order to protect your account, we have sent a password reset link to your email address.</p>';
-    $message .= '<p style="margin-bottom: 10px;">If you have used this password elsewhere, you should go and <i>change it immediately.</i></p>';
-    $message .= '<p style="margin-bottom: 10px;">For more info, check out <a target="_blank" href="https://haveibeenpwned.com/Passwords" title="Have I Been Pwned">Have I Been Pwned</a>.</p>';
-    return $message;
+    $message = [];
+    $message[] = '<p style="margin-bottom: 10px; font-weight: bold;">Your password is not safe.</p>';
+    $message[] = '<p style="margin-bottom: 10px;">In order to protect your account, we have sent a password reset link to your email address.</p>';
+    $message[] = '<p style="margin-bottom: 10px;">If you have used this password elsewhere, you should go and <i>change it immediately.</i></p>';
+    $message[] = '<p style="margin-bottom: 10px;">For more info, check out <a target="_blank" href="https://haveibeenpwned.com/Passwords" title="Have I Been Pwned">Have I Been Pwned</a>.</p>';
+    return join( ' ', $message );
   }
 
   // ==============================================================================
@@ -299,11 +307,11 @@ class PwnedPasswordChecker{
   	// Check the password via Have I Been Pwned
   	if ( self::password_is_burned( $password ) ){
       // Uh oh - pwned. Add as error.
-      $message = '<strong>ERROR</strong>: ';
-      $message .= 'The password you have entered has appeared in a public data breach of another website. ';
-      $message .= 'It is not safe to use this password to protect your account, please choose another password. ';
-      $message .= 'For more info, check out <a target="_blank" href="https://haveibeenpwned.com/Passwords" title="Have I Been Pwned">Have I Been Pwned</a>.';
-      $errors->add( 'pass', $message );
+      $message[] = '<strong>ERROR</strong>:';
+      $message[] = 'The password you have entered has appeared in a public data breach of another website.';
+      $message[] = 'It is not safe to use this password to protect your account, please choose another password.';
+      $message[] = 'For more info, check out <a target="_blank" href="https://haveibeenpwned.com/Passwords" title="Have I Been Pwned">Have I Been Pwned</a>.';
+      $errors->add( 'pass', join( ' ', $message ) );
     }
 
   	return $errors;
