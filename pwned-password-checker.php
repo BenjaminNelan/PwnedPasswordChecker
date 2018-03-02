@@ -259,7 +259,7 @@ class PwnedPasswordChecker{
   function login_errors(){
     $message = '<br><strong>Your password is not secure.</strong>';
     $message .= '<p style="margin-bottom: 10px;">In order to protect your account, we have sent a password reset link to your email address.</p>';
-    $message .= '<p style="padding: 1em 0;">If you use that password on other sites,<br> you should <i>change it immediately.</i></p>';
+    $message .= '<p style="padding: 1em 0;">If you use it on other sites,<br> you should <i>change it immediately.</i></p>';
     $message .= '<small style="text-align:right;display:block"><a target="_blank" href="https://haveibeenpwned.com/Passwords" title="Have I Been Pwned">Learn more</a></small>';
     return $message;
   }
@@ -331,7 +331,7 @@ class PwnedPasswordChecker{
 
       // Uh oh - pwned. Add as error.
       $message = '<br><strong>That password is not secure.</strong>';
-      $message .= '<p style="padding: 1em 0;">If you use that password on other sites,<br> you should <i>change it immediately.</i></p>';
+      $message .= '<p style="padding: 1em 0;">If you use it on other sites,<br> you should <i>change it immediately.</i></p>';
       $message .= 'Please enter a different password.';
       $message .= '<small style="text-align:right;display:block"><a target="_blank" href="https://haveibeenpwned.com/Passwords" title="Have I Been Pwned">Learn more</a></small>';
       $errors->add( 'pass', $message );

@@ -20,7 +20,7 @@ WordPress plugin that checks the password a user enters on registration, reset o
 6. If the password is found in the list an error message is shown to the user and they are informed that the password has been breached:
 
 >That password is not secure.  
-If you use that password on other sites,  
+If you use it on other sites,  
 you should _change it immediately_  
 Please enter a different password.  
 [Learn more](https://haveibeenpwned.com/Passwords)
@@ -32,7 +32,7 @@ Please enter a different password.
 ### Todos
  - Get a few people to double-check my code and call me names.
  - Possibly find a better method of returning an issue to the user if Have I Been Pwned cannot be reached or limits are met.
- - Allow for checking of burned passwords completely locally without an external GET request.  Wouldn't be great for plugin-download-size though and would require a more manual install process.
+ - Allow for checking of burned passwords completely locally without an external GET request.  Wouldn't be great for plugin-download-size though and would require a more manual install process.  
  ~~- Should probably use CURL instead of file_get_contents, although the latter is more likely to be available on shared hosting.~~  
  ~~- Replace the switch method with something else for the sake of replacing the switch method with something else.~~  
 
