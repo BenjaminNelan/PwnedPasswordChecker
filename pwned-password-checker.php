@@ -199,7 +199,10 @@ class PwnedPasswordChecker{
     if( empty($username) || empty($password) ) return;
 
     // Check that our credentials are for real.
-    $login = wp_authenticate_username_password(null, $username, $password);
+    // If an email was used as the username, check that.
+    $login = is_email($username) ?
+        wp_authenticate_email_password( null, $username, $password ) :
+        wp_authenticate_username_password( null, $username, $password );
 
     // User credentials are accurate, now let's see if the password is burned.
     if ( !is_wp_error( $login ) && self::password_is_burned( $password ) ){
